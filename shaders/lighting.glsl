@@ -2,7 +2,7 @@
 const float pi = 3.14159265359;
 uniform vec2 windowSize;
 
-uniform sampler2D positionBuffer, normalBuffer, albedoBuffer, velocityBuffer, roughnessMetalnessDielectricF0Buffer;
+uniform sampler2D positionBuffer, normalBuffer, albedoBuffer, roughnessMetalnessDielectricF0Buffer;
 uniform vec3 viewPosition, lightPosition, lightColour;
 uniform float farPlane, nearPlane;
 
@@ -16,7 +16,7 @@ float depthToLinear(float depth, float far, float near);
 vec4 effect(vec4 colour, sampler2D image, vec2 imageCoords, vec2 windowCoords) {
 	// Get fragment properties
 	vec2 bufferCoords = windowCoords / windowSize;
-	vec3 position; vec3 normal; vec3 albedo; float roughness; float metalness; vec3 velocity; float dielectricF0;
+	vec3 position; vec3 normal; vec3 albedo; float roughness; float metalness; float dielectricF0;
 	
 	vec4 positionTexel = Texel(positionBuffer, bufferCoords);
 	position = positionTexel.xyz;
@@ -30,9 +30,6 @@ vec4 effect(vec4 colour, sampler2D image, vec2 imageCoords, vec2 windowCoords) {
 	roughness = roughnessMetalnessDielectricF0Texel.r;
 	metalness = roughnessMetalnessDielectricF0Texel.g;
 	dielectricF0 = roughnessMetalnessDielectricF0Texel.b * 2.0;
-	
-	vec4 velocityTexel = Texel(velocityBuffer, bufferCoords);
-	velocity = velocityTexel.xyz;
 	
 	// Calculate some important parameters
 	vec3 toLight = normalize(lightPosition - position);
@@ -58,10 +55,6 @@ vec4 effect(vec4 colour, sampler2D image, vec2 imageCoords, vec2 windowCoords) {
 	
 	float NdL = max(dot(normal, toLight), 0.0);
 	vec3 result = (diffuse * albedo / pi + specular) * radiance * NdL;
-	
-	if (albedo.y != 666) {
-		return vec4(velocity, 1.0);
-	}
 	
 	return vec4(result, 1.0);
 }

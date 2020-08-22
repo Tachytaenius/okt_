@@ -1,14 +1,9 @@
-uniform float dt;
-uniform vec3 viewVelocity;
-
 varying vec3 pos;
 varying vec2 texCoord;
 varying mat3 tbn;
-varying vec3 velocity;
 
 #ifdef VERTEX
 	uniform mat4 modelToWorld, modelToCamera, modelToScreen;
-	uniform mat4 previousModelToWorld;
 	
 	// attribute vec2 VertexTexCoord;
 	attribute vec3 VertexNormal, VertexTangent, VertexBitangent;
@@ -21,10 +16,6 @@ varying vec3 velocity;
 			normalize(vec3(modelToWorld * vec4(VertexBitangent, 0.0))),
 			normalize(vec3(modelToWorld * vec4(VertexNormal,    0.0)))
 		);
-		
-		vec3 previousPosition = vec3(previousModelToWorld * homogenVertexPosition);
-		velocity = (pos - previousPosition) / dt;
-		velocity -= viewVelocity;
 		
 		return modelToScreen * homogenVertexPosition;
 	}
@@ -52,7 +43,6 @@ varying vec3 velocity;
 		love_Canvases[1] = vec4(normal, 0.0);
 		love_Canvases[2] = vec4(albedo, 0.0);
 		love_Canvases[3] = vec4(roughness, metalness, dielectricF0, 0.0);
-		love_Canvases[4] = vec4(velocity, 0.0);
-		love_Canvases[5] = vec4(albedo * (1.0 - ambientOcclusion) * ambientColour + albedo * emission, 0.0);
+		love_Canvases[4] = vec4(albedo * (1.0 - ambientOcclusion) * ambientColour + albedo * emission, 0.0);
 	}
 #endif
