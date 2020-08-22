@@ -23,29 +23,19 @@ function input:update()
 		if love.keyboard.isDown(settings.input.yawRight) then yaw = yaw - 1 end
 		
 		if love.keyboard.isDown(settings.input.brakeTranslation) then
-			local relativeVelocity = vec3.rotate(e.velocity.val, e.orientation.val)
-			x = x + math.max(-1, math.min(1, -relativeVelocity.x / (relativeVelocity.x < 0 and e.thrusters.right or e.thrusters.left)))
-			y = y + math.max(-1, math.min(1, -relativeVelocity.y / (relativeVelocity.y < 0 and e.thrusters.up or e.thrusters.down)))
-			z = z + math.max(-1, math.min(1, -relativeVelocity.z / (relativeVelocity.z < 0 and e.thrusters.backward or e.thrusters.forward)))
+			local relativeVelocity = vec3.rotate(e.velocity.val, quat.inverse(e.orientation.val))
+			x = x + math.max(-1, math.min(1, -relativeVelocity.x / (relativeVelocity.x < 0 and e.thrusters.right or e.thrusters.left) / consts.tickLength))
+			y = y + math.max(-1, math.min(1, -relativeVelocity.y / (relativeVelocity.y < 0 and e.thrusters.up or e.thrusters.down) / consts.tickLength))
+			z = z + math.max(-1, math.min(1, -relativeVelocity.z / (relativeVelocity.z < 0 and e.thrusters.backward or e.thrusters.forward) / consts.tickLength))
 		end
 		
 		if love.keyboard.isDown(settings.input.brakeRotation) then
-			pitch = pitch + math.max(-1, math.min(1, -e.angularVelocity.val.x))
-			yaw = yaw + math.max(-1, math.min(1, -e.angularVelocity.val.y))
-			roll = roll + math.max(-1, math.min(1, -e.angularVelocity.val.z))
+			pitch = pitch + math.max(-1, math.min(1, -e.angularVelocity.val.x / (e.angularVelocity.val.x < 0 and e.thrusters.pitchUp or e.thrusters.pitchDown) / consts.tickLength))
+			yaw = yaw + math.max(-1, math.min(1, -e.angularVelocity.val.y / (e.angularVelocity.val.y < 0 and e.thrusters.yawLeft or e.thrusters.yawRight) / consts.tickLength))
+			roll = roll + math.max(-1, math.min(1, -e.angularVelocity.val.z / (e.angularVelocity.val.z < 0 and e.thrusters.rollLeft or e.thrusters.rollRight) / consts.tickLength))
 		end
 		
 		e.will.translationMultiplier, e.will.rotationMultiplier = vec3(x, y, z), vec3(pitch, yaw, roll)
-		
-		-- TEMP
-		if love.keyboard.isDown("space") then
-			local bullet = entity():
-				give("velocity", vec3.components(e.velocity.val + vec3.rotate(vec3(0, 0, -1), e.orientation.val) * 100)):
-				give("position", vec3.components(e.position.val)):
-				give("drawable", "boi"):
-				give("orientation", quat.components(e.orientation.val))
-			world.entitiesToAdd[#world.entitiesToAdd + 1] = bullet
-		end
 	end
 end
 

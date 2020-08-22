@@ -32,19 +32,11 @@ local function newAsset(path)
 	local roughnessMetalnessDielectricF0Data = love.image.newImageData(roughnessData:getDimensions())
 	roughnessMetalnessDielectricF0Data:mapPixel(
 		function(x, y)
-			-- roughness-metalness storage pattern is rrrrrrrm
-			local roughness = roughnessData:getPixel(x, y)
-			local metalness = metalnessData:getPixel(x, y)
-			local rr = math.floor(roughness * 255) - math.floor(roughness * 255) % 2
-			local rm = metalness > 0.5 and 1 or 0
+			local r = roughnessData:getPixel(x, y)
+			local g = metalnessData:getPixel(x, y)
+			local b = dielectricF0Data:getPixel(x, y) -- divided by two to get 0 to 2
 			
-			local fr, fg = dielectricF0Data:getPixel(x, y)
-			-- local f = fg > 0.5 and 1 / fr or fr
-			
-			local r = (rr + rm) / 255
-			local g = fg > 0.5 and 0.5 + (1 - fr) / 2 or fr / 2 -- two-channel 0 to inf mode --> one-channel 0 to inf mode
-			
-			return r, g, 1, 1
+			return r, g, b, 0
 		end
 	)
 	

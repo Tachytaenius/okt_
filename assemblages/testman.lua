@@ -6,5 +6,7 @@ return function(e, px,py,pz, ox,oy,oz,ow)
 		give("will"):
 		give("velocity"):
 		give("angularVelocity"):
-		give("orientation", ox, oy, oz, ow)
+		give("orientation", ox, oy, oz, ow):
+		give("presence", "sphere", 1.5):
+		give("mass", 100)
 end

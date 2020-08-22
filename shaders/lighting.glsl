@@ -2,8 +2,8 @@
 const float pi = 3.14159265359;
 uniform vec2 windowSize;
 
-uniform sampler2D positionNormalBuffer, albedoRoughnessMetalnessBuffer, velocityDielectricF0Buffer, depthBuffer;
-uniform vec3 lightPosition, lightColour;
+uniform sampler2D positionBuffer, normalBuffer, albedoBuffer, velocityBuffer, roughnessMetalnessDielectricF0Buffer;
+uniform vec3 viewPosition, lightPosition, lightColour;
 uniform float farPlane, nearPlane;
 
 float distributionGGX(vec3 normal, vec3 halfway, float roughness);
@@ -16,31 +16,29 @@ float depthToLinear(float depth, float far, float near);
 vec4 effect(vec4 colour, sampler2D image, vec2 imageCoords, vec2 windowCoords) {
 	// Get fragment properties
 	vec2 bufferCoords = windowCoords / windowSize;
-	vec3 fragmentPosition; vec3 normal; vec3 albedo; float roughness; float metalness; vec3 velocity; float dielectricF0;
+	vec3 position; vec3 normal; vec3 albedo; float roughness; float metalness; vec3 velocity; float dielectricF0;
 	
-	vec4 positionNormalTexel = Texel(positionNormalBuffer, bufferCoords);
-	float z = -depthToLinear(Texel(depthBuffer, bufferCoords).r, farPlane, nearPlane);
-	fragmentPosition = vec3(positionNormalTexel.xy, z);
-	normal = vec3(positionNormalTexel.zw, sqrt(1.0 - sq(positionNormalTexel.z) - sq(positionNormalTexel.w)));
+	vec4 positionTexel = Texel(positionBuffer, bufferCoords);
+	position = positionTexel.xyz;
+	vec4 normalTexel = Texel(normalBuffer, bufferCoords);
+	normal = normalTexel.xyz;
 	
-	vec4 albedoRoughnessMetalnessTexel = Texel(albedoRoughnessMetalnessBuffer, bufferCoords);
-	albedo = albedoRoughnessMetalnessTexel.rgb;
-	int roughnessMetalness = int(albedoRoughnessMetalnessTexel.a * 255);
-	roughness = (roughnessMetalness / 2 * 2) / 255.0;
-	metalness = float(mod(roughnessMetalness, 1));
+	vec4 albedoTexel = Texel(albedoBuffer, bufferCoords);
+	albedo = albedoTexel.rgb;
 	
-	vec4 velocityDielectricF0Texel = Texel(velocityDielectricF0Buffer, bufferCoords);
-	velocity = velocityDielectricF0Texel.xyz;
-	dielectricF0 = velocityDielectricF0Texel.a;
+	vec4 roughnessMetalnessDielectricF0Texel = Texel(roughnessMetalnessDielectricF0Buffer, bufferCoords);
+	roughness = roughnessMetalnessDielectricF0Texel.r;
+	metalness = roughnessMetalnessDielectricF0Texel.g;
+	dielectricF0 = roughnessMetalnessDielectricF0Texel.b * 2.0;
+	
+	vec4 velocityTexel = Texel(velocityBuffer, bufferCoords);
+	velocity = velocityTexel.xyz;
 	
 	// Calculate some important parameters
-	vec3 toLight = normalize(lightPosition - fragmentPosition);
-	vec3 toView = normalize(-fragmentPosition);
+	vec3 toLight = normalize(lightPosition - position);
+	vec3 toView = normalize(viewPosition - position);
 	vec3 halfway = normalize(toLight + toView);
-	float attenuation = pow(distance(lightPosition, fragmentPosition), -2.0);
-	if (albedo.x != 0) {
-		return vec4(vec3(toLight), 1.0);
-	}
+	float attenuation = pow(distance(lightPosition, position), -2.0);
 	vec3 radiance = attenuation * lightColour;
 	
 	// Cook-Torrance BRDF
@@ -60,6 +58,10 @@ vec4 effect(vec4 colour, sampler2D image, vec2 imageCoords, vec2 windowCoords) {
 	
 	float NdL = max(dot(normal, toLight), 0.0);
 	vec3 result = (diffuse * albedo / pi + specular) * radiance * NdL;
+	
+	if (albedo.y != 666) {
+		return vec4(velocity, 1.0);
+	}
 	
 	return vec4(result, 1.0);
 }

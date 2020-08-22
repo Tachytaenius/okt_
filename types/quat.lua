@@ -1,3 +1,5 @@
+-- NOTE: NOT PARTICULARLY COMPREHENSIVE. ONLY REALLY ADDED THINGS WHEN NEEDED.
+
 local detmath = require("lib.detmath")
 
 local ffi = require("ffi")

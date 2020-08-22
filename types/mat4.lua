@@ -1,3 +1,5 @@
+-- NOTE: NOT PARTICULARLY COMPREHENSIVE. ONLY REALLY ADDED THINGS WHEN NEEDED.
+
 local ffi = require("ffi")
 ffi.cdef([=[
 	typedef struct {
@@ -123,9 +125,9 @@ ffi.metatype("mat4", {
 		end
 		if ffi_istype("vec3", b) then
 			return vec3(
-				a._00 * b.x + a._01 * b.y + a._02 * b.z + a._03 * 1,
-				a._10 * b.x + a._11 * b.y + a._12 * b.z + a._13 * 1,
-				a._20 * b.x + a._21 * b.y + a._22 * b.z + a._23 * 1
+				(a._00 * b.x + a._01 * b.y + a._02 * b.z + a._03 * 1) / (a._30 * b.x + a._31 * b.y + a._32 * b.z + a._33 * 1),
+				(a._10 * b.x + a._11 * b.y + a._12 * b.z + a._13 * 1) / (a._30 * b.x + a._31 * b.y + a._32 * b.z + a._33 * 1),
+				(a._20 * b.x + a._21 * b.y + a._22 * b.z + a._23 * 1) / (a._30 * b.x + a._31 * b.y + a._32 * b.z + a._33 * 1)
 			)
 		end
 		return new(

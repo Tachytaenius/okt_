@@ -1,4 +1,4 @@
 return component("drawable", function(c, asset)
 	c.asset = asset
-	c.transform = mat4()
+	-- c.previousTransform = nil
 end)

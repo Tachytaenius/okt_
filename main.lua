@@ -43,17 +43,18 @@ function love.load(arg)
 		addSystem(systems.input):
 		addSystem(systems.thrust):
 		addSystem(systems.movement):
+		addSystem(systems.physics):
 		addSystem(systems.rendering):
 		addEntity(entity():assemble(assemblages.testman)):
 		addEntity(entity():assemble(assemblages.testman):give("player"):give("camera")):
-		addEntity(entity():give("emission", 1, 1, 1):give("position", 0, 0, 0))
+		addEntity(entity():give("emission", 10, 10, 10):give("position", 0, 0, 0))
 	world.entitiesToAdd = {}
 	world.gravity = vec3(0, 0, 0)
 	paused = false
 end
 
-function love.draw(lerp)
-	world:emit("draw", lerp)
+function love.draw(lerp, deltaDrawTime)
+	world:emit("draw", lerp, deltaDrawTime)
 	love.graphics.push()
 	love.graphics.scale(1, -1) -- OpenGL --> LÖVE
 	love.graphics.translate(0, -love.graphics.getHeight())
@@ -86,6 +87,7 @@ end
 function love.run()
 	love.load(love.arg.parseGameArguments(arg))
 	local lag = consts.tickLength
+	local updatesSinceLastDraw, lastLerp = 0, 1
 	love.timer.step()
 	
 	return function()
@@ -108,6 +110,7 @@ function love.run()
 			if not paused then
 				local start = love.timer.getTime()
 				for _=1, frames do
+					updatesSinceLastDraw = updatesSinceLastDraw + 1
 					love.detupdate(consts.tickLength)
 				end
 			end
@@ -116,7 +119,12 @@ function love.run()
 		if love.graphics.isActive() then -- Rendering
 			love.graphics.origin()
 			love.graphics.clear(love.graphics.getBackgroundColor())
-			love.draw(lag / consts.tickLength)
+			
+			local lerp = lag / consts.tickLength
+			deltaDrawTime = ((lerp + updatesSinceLastDraw) - lastLerp) * consts.tickLength
+			love.draw(lerp, deltaDrawTime)
+			updatesSinceLastDraw, lastLerp = 0, lerp
+			
 			love.graphics.present()
 		end
 		
