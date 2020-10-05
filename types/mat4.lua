@@ -21,10 +21,10 @@ end
 
 local sin, cos, tan = math.sin, math.cos, math.tan
 
-local function perspective(aspect, fov, far, near)
+local function perspective(aspect, vfov, far, near)
 	return new(
-		1/(aspect*tan(fov/2)), 0, 0, 0,
-		0, 1/tan(fov/2), 0, 0,
+		1/(aspect*tan(vfov/2)), 0, 0, 0,
+		0, 1/tan(vfov/2), 0, 0,
 		0, 0, (near+far)/(near-far), 2*(near+far)/(near-far),
 		0, 0, -1, 0
 	)

@@ -3,8 +3,8 @@ local json = require("lib.json")
 local settings = {}
 
 settings.graphics = {
-	width = 540,
-	height = 480
+	width = 480,
+	height = 270
 }
 
 settings.input = {

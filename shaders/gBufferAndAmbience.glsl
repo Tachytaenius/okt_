@@ -16,7 +16,6 @@ varying mat3 tbn;
 			normalize(vec3(modelToWorld * vec4(VertexBitangent, 0.0))),
 			normalize(vec3(modelToWorld * vec4(VertexNormal,    0.0)))
 		);
-		
 		return modelToScreen * homogenVertexPosition;
 	}
 #endif
@@ -24,6 +23,8 @@ varying mat3 tbn;
 #ifdef PIXEL // FRAGMENT
 	uniform sampler2D albedoEmissionMap, normalAmbientOcclusionMap, roughnessMetalnessDielectricF0Map;
 	uniform vec3 ambientColour;
+	
+	uniform int id;
 	
 	void effect() {
 		vec4 colourTexel = Texel(albedoEmissionMap, texCoord);
@@ -37,12 +38,14 @@ varying mat3 tbn;
 		vec4 materialTexel = Texel(roughnessMetalnessDielectricF0Map, texCoord);
 		float roughness = materialTexel.r;
 		float metalness = materialTexel.g;
-		float dielectricF0 = materialTexel.b; // Divided by two to get 0 to 2
+		float dielectricF0 = materialTexel.b;
+		
+		vec3 emissionAndAmbience = albedo * (1.0 - ambientOcclusion) * ambientColour + albedo * emission;
 		
 		love_Canvases[0] = vec4(pos, 0.0);
 		love_Canvases[1] = vec4(normal, 0.0);
 		love_Canvases[2] = vec4(albedo, 0.0);
 		love_Canvases[3] = vec4(roughness, metalness, dielectricF0, 0.0);
-		love_Canvases[4] = vec4(albedo * (1.0 - ambientOcclusion) * ambientColour + albedo * emission, 0.0);
+		love_Canvases[4] = vec4(emissionAndAmbience, id);
 	}
 #endif

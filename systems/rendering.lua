@@ -1,15 +1,20 @@
-local sendMat4, sendVec3 do
+local sendMat4, sendVec3, sendVec4 do
 	local ffi_copy = require("ffi").copy
 	local buffer = love.data.newByteData(64) -- 4*4 floats
 	local address = buffer:getFFIPointer()
 	
-	function sendMat4(shader, uniform, matrix)
-		ffi_copy(address, matrix, 64)
+	function sendVec3(shader, uniform, vector)
+		ffi_copy(address, vector, 12)
 		shader:send(uniform, buffer)
 	end
 	
-	function sendVec3(shader, uniform, vector)
-		ffi_copy(address, vector, 12)
+	function sendVec4(shader, uniform, vector)
+		ffi_copy(address, vector, 16)
+		shader:send(uniform, buffer)
+	end
+	
+	function sendMat4(shader, uniform, matrix)
+		ffi_copy(address, matrix, 64)
 		shader:send(uniform, buffer)
 	end
 end
@@ -21,7 +26,7 @@ local rendering = system({cameras = {"camera", "position", "orientation"}, model
 
 local dummy = love.graphics.newImage(love.image.newImageData(1, 1))
 
-function rendering:init(world)
+function rendering:init()
 	self.width, self.height = settings.graphics.width, settings.graphics.height
 	
 	self.positionBuffer = love.graphics.newCanvas(self.width, self.height, {format = "rgba16f"})
@@ -39,6 +44,9 @@ function rendering:init(world)
 	
 	self.bufferShader = love.graphics.newShader("shaders/gBufferAndAmbience.glsl")
 	self.lightingShader = love.graphics.newShader("shaders/lighting.glsl")
+	self.postProcessingShader = love.graphics.newShader("shaders/postProcess.glsl")
+	
+	self.skyTexture = love.graphics.newCubeImage("assets/skybox.png")
 end
 
 function rendering:draw(lerp, deltaDrawTime)
@@ -52,20 +60,23 @@ function rendering:draw(lerp, deltaDrawTime)
 	love.graphics.clear()
 	love.graphics.setBlendMode("replace", "premultiplied")
 	
-	local far, near = 1000, 0.001
-	local projectionMatrix = mat4.perspective(self.width / self.height, math.rad(90), far, near)
+	local aspect, vfov, far, near = self.width / self.height, math.rad(90), 1000, 0.001
+	local projectionMatrix = mat4.perspective(aspect, vfov, far, near)
 	local cameraMatrix = mat4.camera(camera.position.ival, camera.orientation.ival)
 	
+	local id = 0 -- Gets stored in the channel of the lighting map to differentiate objects from the sky and each other
 	for _, e in ipairs(self.models) do
 		if e ~= camera then -- if e == camera then continue end >:(
 			local modelMatrix = mat4.transform(e.position.ival, e.orientation.ival)
 			sendMat4(self.bufferShader, "modelToWorld", modelMatrix)
 			-- sendMat4(self.bufferShader, "modelToCamera", cameraMatrix * modelMatrix)
 			sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix * modelMatrix)
-			local asset = assets[e.drawable.asset]
-			self.bufferShader:send("albedoEmissionMap", asset.albedoEmission)
-			self.bufferShader:send("normalAmbientOcclusionMap", asset.normalAmbientOcclusion)
-			self.bufferShader:send("roughnessMetalnessDielectricF0Map", asset.roughnessMetalnessDielectricF0)
+			local asset = assets.getAsset(e.drawable)
+			self.bufferShader:send("albedoEmissionMap", asset.albedoEmissionMap)
+			self.bufferShader:send("normalAmbientOcclusionMap", asset.normalAmbientOcclusionMap)
+			self.bufferShader:send("roughnessMetalnessDielectricF0Map", asset.roughnessMetalnessDielectricF0Map)
+			id = id + 1
+			self.bufferShader:send("id", id)
 			love.graphics.draw(asset.mesh)
 		end
 	end
@@ -91,9 +102,14 @@ function rendering:draw(lerp, deltaDrawTime)
 	end
 	
 	love.graphics.setShader(self.postProcessingShader)
+	self.postProcessingShader:send("sky", self.skyTexture)
+	self.postProcessingShader:send("fovScale", math.tan(vfov/2))
+	self.postProcessingShader:send("aspect", aspect)
+	sendVec4(self.postProcessingShader, "viewQuaternion", camera.orientation.ival)
 	love.graphics.setCanvas(self.output)
 	-- love.graphics.clear()
 	love.graphics.setBlendMode("replace")
+	
 	love.graphics.draw(self.lighting)
 	
 	love.graphics.pop()

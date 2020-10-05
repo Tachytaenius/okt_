@@ -1,3 +1,5 @@
+-- NOTE: NOT PARTICULARLY COMPREHENSIVE. ONLY REALLY ADDED THINGS WHEN NEEDED.
+
 local ffi = require("ffi")
 ffi.cdef([=[
 	typedef struct {

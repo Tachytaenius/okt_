@@ -29,7 +29,7 @@ vec4 effect(vec4 colour, sampler2D image, vec2 imageCoords, vec2 windowCoords) {
 	vec4 roughnessMetalnessDielectricF0Texel = Texel(roughnessMetalnessDielectricF0Buffer, bufferCoords);
 	roughness = roughnessMetalnessDielectricF0Texel.r;
 	metalness = roughnessMetalnessDielectricF0Texel.g;
-	dielectricF0 = roughnessMetalnessDielectricF0Texel.b * 2.0;
+	dielectricF0 = roughnessMetalnessDielectricF0Texel.b;
 	
 	// Calculate some important parameters
 	vec3 toLight = normalize(lightPosition - position);
@@ -56,7 +56,7 @@ vec4 effect(vec4 colour, sampler2D image, vec2 imageCoords, vec2 windowCoords) {
 	float NdL = max(dot(normal, toLight), 0.0);
 	vec3 result = (diffuse * albedo / pi + specular) * radiance * NdL;
 	
-	return vec4(result, 1.0);
+	return vec4(result, 0.0);
 }
 
 float distributionGGX(vec3 normal, vec3 halfway, float roughness) {

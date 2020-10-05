@@ -30,40 +30,48 @@ concord.utils.loadNamespace("assemblages", assemblages)
 
 local settings = require("settings")
 -- local assets   = require("assets")
+local noice = require("lib.noice")
+
+local ffi = require("ffi")
+local uint64 = ffi.typeof("uint64_t")
 
 local world, paused
 
 function love.load(arg)
+	love.graphics.setFrontFaceWinding("cw")
 	love.graphics.setDepthMode("lequal", true)
-	love.graphics.setMeshCullMode("front") -- TEMP. Vertex winding issues.
+	love.graphics.setMeshCullMode("back")
 	
-	world = concord.world():
+	world = concord.world()
+	world.entitiesToAdd = {}
+	
+	world:
 		addSystem(systems.quantities):
+		addSystem(systems.gravity):
 		addSystem(systems.ais):
 		addSystem(systems.input):
 		addSystem(systems.thrust):
+		addSystem(systems.collision):
 		addSystem(systems.movement):
-		addSystem(systems.physics):
 		addSystem(systems.rendering):
-		addEntity(entity():assemble(assemblages.testman)):
-		addEntity(entity():assemble(assemblages.testman):give("player"):give("camera")):
-		addEntity(entity():give("emission", 10, 10, 10):give("position", 0, 0, 0))
-	world.entitiesToAdd = {}
-	world.gravity = vec3(0, 0, 0)
+		addSystem(systems.HUD):
+		addEntity(entity():assemble(assemblages.testman):give("player"):give("camera"):give("emission", 10, 10, 10):give("gravitationalAcceleration")):
+		addEntity(entity():assemble(assemblages.testman, 0, 0, -10):remove("mass"):give("mass", math.huge)):
+		addEntity(entity():give("gravity", 0, 0, -10))
+	
 	paused = false
 end
 
 function love.draw(lerp, deltaDrawTime)
 	world:emit("draw", lerp, deltaDrawTime)
 	love.graphics.push()
-	love.graphics.scale(1, -1) -- OpenGL --> LÖVE
+	
+	-- OpenGL --> LÖVE
+	love.graphics.scale(1, -1)
 	love.graphics.translate(0, -love.graphics.getHeight())
-	love.graphics.setShader(love.graphics.newShader([[
-		vec4 effect(vec4 colour, sampler2D image, vec2 tc, vec2 wc) {
-			return vec4(Texel(image, tc).rgb, 1.0);
-		}
-	]]))
-	love.graphics.draw(world:getSystem(systems.rendering).lighting)
+	
+	love.graphics.draw(world:getSystem(systems.rendering).output)
+	love.graphics.draw(world:getSystem(systems.HUD).output)
 	love.graphics.pop()
 end
 

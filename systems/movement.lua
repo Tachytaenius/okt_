@@ -2,7 +2,6 @@ local movement = system({translatees = {"position", "velocity"}, rotatees = {"or
 
 function movement:update(dt)
 	for _, e in ipairs(self.translatees) do
-		e.velocity.val = e.velocity.val + self:getWorld().gravity * dt
 		e.position.val = e.position.val + e.velocity.val * dt
 	end
 	
