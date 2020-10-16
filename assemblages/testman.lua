@@ -7,6 +7,7 @@ return function(e, px,py,pz, ox,oy,oz,ow)
 		give("velocity"):
 		give("angularVelocity"):
 		give("orientation", ox, oy, oz, ow):
-		give("presence", "sphere", 1):
-		give("mass", 100)
+		give("presence", "sphere", 0.2):
+		give("mass", 100):
+		give("restitution", 0.8)
 end

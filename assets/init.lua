@@ -1,7 +1,7 @@
 -- All TEMP/TODO
 
-local loadObj = require("assets.loadObj")
-local getMergedMaps = require("assets.getMergedMaps")
+local loadObj = require("util.loadObj")
+local getMergedMaps = require("util.gfx.getMergedMaps")
 local function newAsset(path)
 	local albedoEmissionMap, normalAmbientOcclusionMap, roughnessMetalnessDielectricF0Map = getMergedMaps(path)
 	return {
@@ -14,6 +14,7 @@ local assets = {}
 function assets.getAsset(drawable)
 	return assets[drawable.asset]
 end
-assets.boi = newAsset("boi")
-assets.ball = newAsset("ball")
+assets.boi = newAsset("entity/boi")
+assets.ball = newAsset("entity/ball")
+assets.floar = newAsset("entity/floar")
 return assets

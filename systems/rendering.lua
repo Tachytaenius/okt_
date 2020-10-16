@@ -46,7 +46,7 @@ function rendering:init()
 	self.lightingShader = love.graphics.newShader("shaders/lighting.glsl")
 	self.postProcessingShader = love.graphics.newShader("shaders/postProcess.glsl")
 	
-	self.skyTexture = love.graphics.newCubeImage("assets/skybox.png")
+	-- levelSkyTexture, levelMesh, levelAlbedoEmissionMap, levelNormalAmbientOcclusionMap, levelRoughnessMetalnessDielectricF0Map
 end
 
 function rendering:draw(lerp, deltaDrawTime)
@@ -64,12 +64,22 @@ function rendering:draw(lerp, deltaDrawTime)
 	local projectionMatrix = mat4.perspective(aspect, vfov, far, near)
 	local cameraMatrix = mat4.camera(camera.position.ival, camera.orientation.ival)
 	
-	local id = 0 -- Gets stored in the channel of the lighting map to differentiate objects from the sky and each other
+	local id = 0 -- Gets stored in the alpha channel of the lighting map to differentiate objects from the sky and each other
+	
+	-- Draw the level first
+	sendMat4(self.bufferShader, "modelToWorld", mat4())
+	sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix)
+	self.bufferShader:send("albedoEmissionMap", self.levelAlbedoEmissionMap)
+	self.bufferShader:send("normalAmbientOcclusionMap", self.levelNormalAmbientOcclusionMap)
+	self.bufferShader:send("roughnessMetalnessDielectricF0Map", self.levelRoughnessMetalnessDielectricF0Map)
+	id = id + 1
+	self.bufferShader:send("id", id)
+	love.graphics.draw(self.levelMesh)
+	
 	for _, e in ipairs(self.models) do
 		if e ~= camera then -- if e == camera then continue end >:(
 			local modelMatrix = mat4.transform(e.position.ival, e.orientation.ival)
 			sendMat4(self.bufferShader, "modelToWorld", modelMatrix)
-			-- sendMat4(self.bufferShader, "modelToCamera", cameraMatrix * modelMatrix)
 			sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix * modelMatrix)
 			local asset = assets.getAsset(e.drawable)
 			self.bufferShader:send("albedoEmissionMap", asset.albedoEmissionMap)
@@ -102,7 +112,7 @@ function rendering:draw(lerp, deltaDrawTime)
 	end
 	
 	love.graphics.setShader(self.postProcessingShader)
-	self.postProcessingShader:send("sky", self.skyTexture)
+	self.postProcessingShader:send("sky", self.levelSkyTexture)
 	self.postProcessingShader:send("fovScale", math.tan(vfov/2))
 	self.postProcessingShader:send("aspect", aspect)
 	sendVec4(self.postProcessingShader, "viewQuaternion", camera.orientation.ival)

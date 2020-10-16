@@ -1,4 +1,4 @@
-local setTangentsAndBitangents = require("util.setTangentsAndBitangents")
+local setTangentsAndBitangents = require("util.gfx.setTangentsAndBitangents")
 
 local terrain = system({})
 

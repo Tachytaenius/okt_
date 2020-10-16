@@ -3,7 +3,7 @@ varying vec2 texCoord;
 varying mat3 tbn;
 
 #ifdef VERTEX
-	uniform mat4 modelToWorld, modelToCamera, modelToScreen;
+	uniform mat4 modelToWorld, modelToScreen;
 	
 	// attribute vec2 VertexTexCoord;
 	attribute vec3 VertexNormal, VertexTangent, VertexBitangent;

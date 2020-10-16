@@ -24,7 +24,7 @@ local function new(x, y, z, w)
 	end
 end
 
-local sqrt, sin, cos, acos, dsin, dcos, dacos = math.sqrt, math.sin, math.cos, math.acos, detmath.sin, detmath.cos, detmath.acos
+local sqrt, sin, cos, acos, detsin, detcos, detacos = math.sqrt, math.sin, math.cos, math.acos, detmath.sin, detmath.cos, detmath.acos
 
 local function length(q)
 	local x, y, z, w = q.x, q.y, q.z, q.w

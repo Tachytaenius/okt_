@@ -37,6 +37,8 @@ local uint64 = ffi.typeof("uint64_t")
 
 local world, paused
 
+local loadScene = require("util.loadScene")
+
 function love.load(arg)
 	love.graphics.setFrontFaceWinding("cw")
 	love.graphics.setDepthMode("lequal", true)
@@ -51,13 +53,25 @@ function love.load(arg)
 		addSystem(systems.ais):
 		addSystem(systems.input):
 		addSystem(systems.thrust):
-		addSystem(systems.collision):
+		addSystem(systems.physics):
 		addSystem(systems.movement):
 		addSystem(systems.rendering):
-		addSystem(systems.HUD):
-		addEntity(entity():assemble(assemblages.testman):give("player"):give("camera"):give("emission", 10, 10, 10):give("gravitationalAcceleration")):
-		addEntity(entity():assemble(assemblages.testman, 0, 0, -10):remove("mass"):give("mass", math.huge)):
-		addEntity(entity():give("gravity", 0, 0, -10))
+		addSystem(systems.HUD)
+	
+	loadScene("testworld", world:getSystem(systems.rendering), world:getSystem(systems.physics))
+	
+	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera"):give("emission", 10, 10, 10):give("gravitationalAcceleration")
+	local otherGuy = entity():assemble(assemblages.testman, 2, 2, -10)
+	local gravity = entity():give("gravity", 0, 0, -10        * 0)
+	-- local platform = entity():give("orientation"):give("drawable", "floar"):give("position", 0, 0, -3)
+	
+	world:
+		addEntity(player):
+		addEntity(otherGuy):
+		addEntity(gravity)
+		-- addEntity(platform)
+	
+	player.orientation.val = quat.detFromAxisAngle(vec3(1,0,0)*detmath.tau/4)
 	
 	paused = false
 end
