@@ -1,5 +1,5 @@
 return component("thrusters", function(c, forward, backwards, left, right, up, down, pitchUp, pitchDown, rollLeft, rollRight, yawLeft, yawRight)
-	-- Store the strengths thereof
+	-- Store the force exertable in each direction
 	c.forward,  c.backwards = forward,  backwards
 	c.left,     c.right     = left,     right
 	c.up,       c.down      = up,       down

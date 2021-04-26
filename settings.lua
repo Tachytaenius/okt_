@@ -23,7 +23,9 @@ settings.input = {
 	rollRight = "o",
 	
 	brakeTranslation = "lshift",
-	brakeRotation = "lctrl"
+	brakeRotation = "lctrl",
+	
+	shoot = "space"
 }
 
 return settings

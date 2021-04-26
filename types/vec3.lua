@@ -1,5 +1,7 @@
 -- NOTE: NOT PARTICULARLY COMPREHENSIVE. ONLY REALLY ADDED THINGS WHEN NEEDED.
 
+local detmath = require("lib.detmath")
+
 local ffi = require("ffi")
 ffi.cdef([=[
 	typedef struct {
@@ -17,7 +19,8 @@ local function new(x, y, z)
 	return new_(x, y, z)
 end
 
-local sqrt = math.sqrt
+local sqrt, sin, cos = math.sqrt, math.sin, math.cos
+local detsin, detcos = detmath.sin, detmath.cos
 
 local function length(a)
 	local x, y, z = a.x, a.y, a.z
@@ -72,6 +75,17 @@ local function rotate(v, q)
 	return v + ((uv * q.w) + uuv) * 2
 end
 
+local function fromAngles(theta, phi)
+	local st, sp, ct, cp = sin(theta), sin(phi), cos(theta), cos(phi)
+	return new(st*sp,ct,st*cp)
+end
+
+local function detFromAngles(theta, phi)
+	print(theta, phi)
+	local st, sp, ct, cp = detsin(theta), detsin(phi), detcos(theta), detcos(phi)
+	return new(st*sp,ct,st*cp)
+end
+
 local function components(v)
 	return v.x, v.y, v.z
 end
@@ -88,6 +102,8 @@ local vec3 = setmetatable({
 	reflect = reflect,
 	refract = refract,
 	rotate = rotate,
+	fromAngles = fromAngles,
+	detFromAngles = detFromAngles,
 	components = components
 }, {
 	__call = function(_, x, y, z)

@@ -71,12 +71,16 @@ local function rotate(v, a)
 	)
 end
 
-local function detrotate(v, a)
+local function detRotate(v, a)
 	local x, y = v.x, v.y
 	return vec2(
 		x * detcos(a) - y * detsin(a),
 		y * detcos(a) + x * detsin(a)
 	)
+end
+
+local function components(v)
+	return v.x, v.y
 end
 
 local vec2 = setmetatable({
@@ -90,7 +94,8 @@ local vec2 = setmetatable({
 	reflect = reflect,
 	refract = refract,
 	rotate = rotate,
-	detrotate = detrotate
+	detRotate = detRotate,
+	components = components
 }, {
 	__call = function(_, x, y)
 		return new(x, y)

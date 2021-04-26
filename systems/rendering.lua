@@ -1,3 +1,5 @@
+local vfov, far, near = math.rad(90), 1000, 0.001 -- Settings?
+
 local sendMat4, sendVec3, sendVec4 do
 	local ffi_copy = require("ffi").copy
 	local buffer = love.data.newByteData(64) -- 4*4 floats
@@ -22,9 +24,11 @@ end
 local settings = require("settings")
 local assets = require("assets")
 
-local rendering = system({cameras = {"camera", "position", "orientation"}, models = {"drawable", "position", "orientation"}, lights = {"position", "emission"}})
+local rendering = system({cameras = {"camera", "position", "orientation"}, models = {"drawable", "position"}, lights = {"position", "emission"}})
 
-local dummy = love.graphics.newImage(love.image.newImageData(1, 1))
+local dummyData = love.image.newImageData(1, 1)
+local dummy = love.graphics.newImage(dummyData)
+local dummyCube = love.graphics.newCubeImage({dummyData, dummyData, dummyData, dummyData, dummyData, dummyData})
 
 function rendering:init()
 	self.width, self.height = settings.graphics.width, settings.graphics.height
@@ -60,25 +64,27 @@ function rendering:draw(lerp, deltaDrawTime)
 	love.graphics.clear()
 	love.graphics.setBlendMode("replace", "premultiplied")
 	
-	local aspect, vfov, far, near = self.width / self.height, math.rad(90), 1000, 0.001
+	local aspect, vfov, far, near = self.width / self.height, vfov, far, near
 	local projectionMatrix = mat4.perspective(aspect, vfov, far, near)
 	local cameraMatrix = mat4.camera(camera.position.ival, camera.orientation.ival)
 	
 	local id = 0 -- Gets stored in the alpha channel of the lighting map to differentiate objects from the sky and each other
 	
-	-- Draw the level first
-	sendMat4(self.bufferShader, "modelToWorld", mat4())
-	sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix)
-	self.bufferShader:send("albedoEmissionMap", self.levelAlbedoEmissionMap)
-	self.bufferShader:send("normalAmbientOcclusionMap", self.levelNormalAmbientOcclusionMap)
-	self.bufferShader:send("roughnessMetalnessDielectricF0Map", self.levelRoughnessMetalnessDielectricF0Map)
-	id = id + 1
-	self.bufferShader:send("id", id)
-	love.graphics.draw(self.levelMesh)
+	-- Draw the level first, if there is one
+	if self.levelMesh then
+		sendMat4(self.bufferShader, "modelToWorld", mat4())
+		sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix)
+		self.bufferShader:send("albedoEmissionMap", self.levelAlbedoEmissionMap)
+		self.bufferShader:send("normalAmbientOcclusionMap", self.levelNormalAmbientOcclusionMap)
+		self.bufferShader:send("roughnessMetalnessDielectricF0Map", self.levelRoughnessMetalnessDielectricF0Map)
+		id = id + 1
+		self.bufferShader:send("id", id)
+		love.graphics.draw(self.levelMesh)
+	end
 	
 	for _, e in ipairs(self.models) do
 		if e ~= camera then -- if e == camera then continue end >:(
-			local modelMatrix = mat4.transform(e.position.ival, e.orientation.ival)
+			local modelMatrix = mat4.transform(e.position.ival, e.orientation and e.orientation.ival or quat())
 			sendMat4(self.bufferShader, "modelToWorld", modelMatrix)
 			sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix * modelMatrix)
 			local asset = assets.getAsset(e.drawable)
@@ -112,7 +118,7 @@ function rendering:draw(lerp, deltaDrawTime)
 	end
 	
 	love.graphics.setShader(self.postProcessingShader)
-	self.postProcessingShader:send("sky", self.levelSkyTexture)
+	self.postProcessingShader:send("sky", self.levelSkyTexture or dummyCube)
 	self.postProcessingShader:send("fovScale", math.tan(vfov/2))
 	self.postProcessingShader:send("aspect", aspect)
 	sendVec4(self.postProcessingShader, "viewQuaternion", camera.orientation.ival)

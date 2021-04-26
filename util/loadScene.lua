@@ -15,7 +15,7 @@ return function(path, renderingSystem, physicsSystem)
 		local p2 = vec3(v2[1], v2[2], v2[3])
 		local p3 = vec3(v3[1], v3[2], v3[3])
 		
-		local triangleRestitution = 0 -- TEMP
+		local triangleRestitution = 0.2 -- TEMP
 		
 		physicsSystem:addTriangle(p1, p2, p3, triangleRestitution)
 	end
