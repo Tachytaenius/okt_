@@ -81,7 +81,6 @@ local function fromAngles(theta, phi)
 end
 
 local function detFromAngles(theta, phi)
-	print(theta, phi)
 	local st, sp, ct, cp = detsin(theta), detsin(phi), detcos(theta), detcos(phi)
 	return new(st*sp,ct,st*cp)
 end

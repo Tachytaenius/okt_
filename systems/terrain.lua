@@ -6,10 +6,13 @@ function terrain:init(world)
 	self.cw, self.ch, self.cd = world.chunkWidth, world.chunkHeight, world.chunkDepth
 	self.chunks = {}
 	self.chunksToUpdate = {}
+	
 	for x = -5, 5 do
 		for y = -5, 5 do
 			for z = -5, 5 do
-				self.chunksToUpdate[#self.chunksToUpdate + 1] = self:generate(x, y, z)
+				local chunk = self:generate(x, y, z)
+				self.chunksToUpdate[#self.chunksToUpdate + 1] = chunk
+				self.chunks[#self.chunks + 1] = chunk
 			end
 		end
 	end
@@ -64,7 +67,7 @@ end
 
 function terrain:getLocalVoxel(chunk, x, y, z)
 	local i = self:getIndex(x, y, z)
-	return string.byte(chunk.voxels:sub(i, i)), (string.byte(chunk.normalsX:sub(i, i)) / 255) * 2 - 1, (string.byte(chunk.normalsY:sub(i, i)) / 255) * 2 - 1, (string.byte(chunk.normalsZ:sub(i, i)) / 255) * 2 - 1
+	return string.byte(chunk.materials:sub(i, i)), string.byte(chunk.edgePositions:sub(i, i)), (string.byte(chunk.normalsX:sub(i, i)) / 255) * 2 - 1, (string.byte(chunk.normalsY:sub(i, i)) / 255) * 2 - 1, (string.byte(chunk.normalsZ:sub(i, i)) / 255) * 2 - 1
 end
 
 function terrain:updateMeshes(dt)
@@ -91,22 +94,27 @@ function terrain:updateMeshes(dt)
 				for z = 0, self.cd - 1 do
 					local gx, gy, gz = x + ox, y + oy, z + oz -- global
 					
-					-- Variable names: negative, positive; x, y, z
-					local nnn, nx, ny, nz = self:getVoxel(gx, gy, gz)
-					local nnp = self:getVoxel(gx, gy, gz+1)
-					local npn = self:getVoxel(gx, gy+1, gz)
-					local npp = self:getVoxel(gx, gy+1, gz+1)
-					local pnn = self:getVoxel(gx+1, gy, gz)
-					local pnp = self:getVoxel(gx+1, gy, gz+1)
-					local ppn = self:getVoxel(gx+1, gy+1, gz)
-					local ppp = self:getVoxel(gx+1, gy+1, gz+1)
+					-- Variable names: negative, positive; x, y, z; voxel material, edge position, normal
+					local nnnm = self:getVoxel(gx, gy, gz)
+					local nnpm = self:getVoxel(gx, gy, gz+1)
+					local npnm = self:getVoxel(gx, gy+1, gz)
+					local pnnm = self:getVoxel(gx+1, gy, gz)
 					
-					local centreWeight = 0.1
-					local sumWeights = nnn+nnp+npn+npp+pnn+pnp+ppn+ppp+centreWeight
-					local vx = (gx * (nnn+nnp+npn+npp) + (gx + 1) * (pnn+pnp+ppn+ppp) + (gx + 0.5) * centreWeight) / sumWeights
-					local vy = (gy * (nnn+nnp+pnn+pnp) + (gy + 1) * (npn+npp+ppn+ppp) + (gy + 0.5) * centreWeight) / sumWeights
-					local vz = (gz * (nnn+npn+pnn+ppn) + (gz + 1) * (nnp+npp+pnp+ppp) + (gz + 0.5) * centreWeight) / sumWeights
-					local l = vec3.normalize(vec3(nx, ny, nz))
+					nnnxe, nnnxnx, nnnxny, nnnxnz
+					nnpxe, nnpxnx, nnpxny, nnpxnz
+					npnxe, npnxnx, npnxny, npnxnz
+					nppxe, nppxnx, nppxny, nppxnz
+					nnnye, nnnynx, nnnyny, nnnynz
+					nnpye, nnpynx, nnpyny, nnpynz
+					pnnye, pnnynx, pnnyny, pnnynz
+					pnpye, pnpynx, pnpyny, pnpynz
+					nnnze, nnnznx, nnnzny, nnnznz
+					npnze, npnznx, npnzny, npnznz
+					pnnze, pnnznx, pnnzny, pnnznz
+					ppnze, ppnznx, ppnzny, ppnznz
+					
+					
+					local vx, vy, vz = require("qef")() -- I'm so sorry lmao
 					cellVertices[getRegionIndex(gx, gy, gz)] = {vx, vy, vz, math.random(), math.random(), l.x, l.y, l.z}
 				end
 			end
@@ -124,7 +132,8 @@ function terrain:updateMeshes(dt)
 					local a = self:getVoxel(gx, gy, gz) > 0
 					
 					local function writeEdge(v1, v2, v3, v4)
-						if not a then -- If it's not the sample in the negative direction that's solid, then swap the winding order of the vertices (face culling)
+						-- TODO: why not opposite?
+						if a then -- If it's the sample in the negative direction that's solid, then swap the winding order of the vertices (face culling)
 							v2, v3 = v3, v2
 						end
 						
@@ -198,7 +207,8 @@ function terrain:updateMeshes(dt)
 	end
 end
 
-local temporaryTerrainTable = {}
+local temporaryMaterialTable = {}
+local temporaryEdgePositionTable = {}
 local temporaryNormalXTable = {}
 local temporaryNormalYTable = {}
 local temporaryNormalZTable = {}
@@ -213,10 +223,10 @@ function terrain:generate(x, y, z)
 			local height = 2.5 + 3 * noiser:noise2D(gx / 8, gy / 8)
 			
 			local surfaceNormalX, surfaceNormalY, surfaceNormalZ
-			local N = 2.5 + 3 * noiser:noise2D(gx / 8, (gy + 1) / 8)
-			local S = 2.5 + 3 * noiser:noise2D(gx / 8, (gy - 1) / 8)
-			local E = 2.5 + 3 * noiser:noise2D((gx + 1) / 8, gy / 8)
-			local W = 2.5 + 3 * noiser:noise2D((gx - 1) / 8, gy / 8)
+			local N = noiser:noise2D(gx / 8, (gy + 1) / 8)
+			local S = noiser:noise2D(gx / 8, (gy - 1) / 8)
+			local E = noiser:noise2D((gx + 1) / 8, gy / 8)
+			local W = noiser:noise2D((gx - 1) / 8, gy / 8)
 			
 			-- local n = vec3(gx, gy - 1, S)
 			-- local e = vec3(gx, gy + 1, N)
@@ -232,26 +242,32 @@ function terrain:generate(x, y, z)
 			for z = 0, self.cd - 1 do
 				local gz = z + oz -- global
 				local index = self:getIndex(x, y, z)
-				local terrainValue, normalXValue, normalYValue, normalZValue
+				local materialValue, edgePosition, normalXValue, normalYValue, normalZValue
+				
+				edgePosition = 0.5
+				
 				if gz <= height then
-					terrainValue = 1
+					materialValue = 1
 				else
-					terrainValue = 0
+					materialValue = 0
 				end
 				if height - 2 <= gz and gz <= height + 1 then
 					normalXValue, normalYValue, normalZValue = surfaceNormalX, surfaceNormalY, surfaceNormalZ
 				else
 					normalXValue, normalYValue, normalZValue = 0, 0, 0 -- dont cares
 				end
-				temporaryTerrainTable[index] = string.char(terrainValue)
+				temporaryMaterialTable[index] = string.char(materialValue)
+				temporaryEdgePositionTable[index] = string.char(edgePosition*255)
 				temporaryNormalXTable[index] = string.char((normalXValue / 2 + 0.5)*255)
 				temporaryNormalYTable[index] = string.char((normalYValue / 2 + 0.5)*255)
 				temporaryNormalZTable[index] = string.char((normalZValue / 2 + 0.5)*255)
 			end
 		end
 	end
-	temporaryTerrainTable[self.cw * self.ch * self.cd + 1] = nil
-	chunk.voxels = table.concat(temporaryTerrainTable)
+	temporaryMaterialTable[self.cw * self.ch * self.cd + 1] = nil
+	chunk.materials = table.concat(temporaryMaterialTable)
+	temporaryMaterialTable[self.cw * self.ch * self.cd + 1] = nil
+	chunk.edgePositions = table.concat(temporaryEdgePositionTable)
 	temporaryNormalXTable[self.cw * self.ch * self.cd + 1] = nil
 	chunk.normalsX = table.concat(temporaryNormalXTable)
 	temporaryNormalYTable[self.cw * self.ch * self.cd + 1] = nil

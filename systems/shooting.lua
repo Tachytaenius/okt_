@@ -9,9 +9,7 @@ function shooting:update(dt)
 					(love.math.random() - 0.5) * e.guns.spreadAngle
 				local direction = vec3.rotate(vec3.detFromAngles(theta, phi), e.orientation.val)
 				local velocity = direction * e.guns.speed
-				print(vec3.detFromAngles(theta, phi))
 				if e.velocity then
-					print("yeah")
 					velocity = velocity + vec3.rotate(e.velocity.val, e.orientation.val)
 				end
 				local position = e.position.val + e.guns.muzzlePos

@@ -81,7 +81,11 @@ function rendering:draw(lerp, deltaDrawTime)
 		self.bufferShader:send("id", id)
 		love.graphics.draw(self.levelMesh)
 	end
-	
+	for _, chunk in ipairs(self:getWorld():getSystem(systems.terrain).chunks) do
+		if chunk.mesh then
+			love.graphics.draw(chunk.mesh)
+		end
+	end
 	for _, e in ipairs(self.models) do
 		if e ~= camera then -- if e == camera then continue end >:(
 			local modelMatrix = mat4.transform(e.position.ival, e.orientation and e.orientation.ival or quat())

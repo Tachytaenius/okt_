@@ -28,7 +28,7 @@ concord.utils.loadNamespace("systems", systems)
 concord.utils.loadNamespace("assemblages", assemblages)
 
 local settings = require("settings")
--- local assets   = require("assets")
+-- local assets = require("assets")
 local noice = require("lib.noice")
 
 local ffi = require("ffi")
@@ -46,33 +46,37 @@ function love.load(arg)
 	world = concord.world()
 	world.entitiesToAdd = {}
 	
-	world:
-		addSystem(systems.quantities):
-		addSystem(systems.drag):
-		addSystem(systems.gravity):
-		addSystem(systems.ais):
-		addSystem(systems.input):
-		addSystem(systems.thrust):
-		addSystem(systems.shooting):
-		addSystem(systems.movement):
-		addSystem(systems.physics):
-		addSystem(systems.rendering):
-		addSystem(systems.HUD)
+	world.chunkWidth, world.chunkHeight, world.chunkDepth = 6, 6, 6
+	world.simplexer = noice.newNoiser("OpenSimplex")
+	
+	world
+		:addSystem(systems.quantities)
+		:addSystem(systems.drag)
+		:addSystem(systems.gravity)
+		:addSystem(systems.ais)
+		:addSystem(systems.input)
+		:addSystem(systems.thrust)
+		:addSystem(systems.shooting)
+		:addSystem(systems.movement)
+		:addSystem(systems.physics)
+		:addSystem(systems.terrain)
+		:addSystem(systems.rendering)
+		:addSystem(systems.HUD)
 	
 	loadScene("testworld", world:getSystem(systems.rendering), world:getSystem(systems.physics))
 	
-	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera"):give("emission", 25, 25, 25):give("gravitationalAcceleration")
+	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera"):give("emission", 100, 100, 100):give("gravitationalAcceleration")
 	-- local otherGuy = entity():assemble(assemblages.testman, 2, 2, -10)
 	-- local gravity = entity():give("gravity", 0, 0, -10)
 	-- local air = entity():give("air", 0.5)
 	-- local platform = entity():give("orientation"):give("drawable", "floar"):give("position", 0, 0, -3)
 	
-	world:
-		addEntity(player)
-		-- addEntity(otherGuy):
-		-- addEntity(gravity):
-		-- addEntity(air):
-		-- addEntity(platform)
+	world
+		:addEntity(player)
+		-- :addEntity(otherGuy)
+		-- :addEntity(gravity)
+		-- :addEntity(air)
+		-- :addEntity(platform)
 	
 	player.orientation.val = quat.detFromAxisAngle(vec3(1,0,0)*detmath.tau/4)
 	
@@ -99,7 +103,6 @@ end
 function love.detupdate(dt)
 	-- assert(dt == consts.tickLength)
 	for _, entity in ipairs(world.entitiesToAdd) do
-		print("yeah")
 		world:addEntity(entity)
 	end
 	world.entitiesToAdd = {}

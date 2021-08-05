@@ -31,13 +31,12 @@ local function perspective(aspect, vfov, far, near)
 end
 
 local function translate(v)
-	local hanburger = new(
+	return new(
 		1, 0, 0, v.x,
 		0, 1, 0, v.y,
 		0, 0, 1, v.z,
 		0, 0, 0, 1
 	)
-	return hanburger
 end
 
 local function rotate(q)
