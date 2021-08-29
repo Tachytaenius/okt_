@@ -12,7 +12,7 @@ function shooting:update(dt)
 				if e.velocity then
 					velocity = velocity + vec3.rotate(e.velocity.val, e.orientation.val)
 				end
-				local position = e.position.val + e.guns.muzzlePos
+				local position = e.position.val - vec3.rotate(e.guns.muzzlePos, -e.orientation.val) -- TODO: Test
 				
 				local projectile = entity():assemble(assemblages[e.guns.projectile])
 				projectile.velocity.val, projectile.position.val = velocity, position

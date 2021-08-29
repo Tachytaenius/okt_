@@ -54,8 +54,10 @@ function rendering:init()
 end
 
 function rendering:draw(lerp, deltaDrawTime)
-	local camera = self.cameras[1]
-	if not camera then return end
+	local cameraEntity = self.cameras[1]
+	if not cameraEntity then return end
+	local cameraComponent = cameraEntity.camera
+	local hideCameraEntity = not cameraComponent.show
 	
 	love.graphics.push("all")
 	
@@ -66,7 +68,16 @@ function rendering:draw(lerp, deltaDrawTime)
 	
 	local aspect, vfov, far, near = self.width / self.height, vfov, far, near
 	local projectionMatrix = mat4.perspective(aspect, vfov, far, near)
-	local cameraMatrix = mat4.camera(camera.position.ival, camera.orientation.ival)
+	local cameraPosition, cameraOrientation
+	-- TODO: Specific tracking types...?
+	if cameraComponent.thirdPerson then
+		cameraPosition = cameraEntity.position.ival + cameraComponent.offset
+		cameraOrientation = cameraComponent.orientation
+	else
+		cameraPosition = cameraEntity.position.ival - vec3.rotate(cameraComponent.offset, -cameraEntity.orientation.ival)
+		cameraOrientation = cameraEntity.orientation.ival * cameraComponent.orientation
+	end
+	local cameraMatrix = mat4.camera(cameraPosition, cameraOrientation)
 	
 	local id = 0 -- Gets stored in the alpha channel of the lighting map to differentiate objects from the sky and each other
 	
@@ -81,13 +92,8 @@ function rendering:draw(lerp, deltaDrawTime)
 		self.bufferShader:send("id", id)
 		love.graphics.draw(self.levelMesh)
 	end
-	for _, chunk in ipairs(self:getWorld():getSystem(systems.terrain).chunks) do
-		if chunk.mesh then
-			love.graphics.draw(chunk.mesh)
-		end
-	end
 	for _, e in ipairs(self.models) do
-		if e ~= camera then -- if e == camera then continue end >:(
+		if not (hideCameraEntity and e == cameraEntity) then -- if hideCameraEntity and e == cameraEntity then continue end >:(
 			local modelMatrix = mat4.transform(e.position.ival, e.orientation and e.orientation.ival or quat())
 			sendMat4(self.bufferShader, "modelToWorld", modelMatrix)
 			sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix * modelMatrix)
@@ -112,7 +118,7 @@ function rendering:draw(lerp, deltaDrawTime)
 	self.lightingShader:send("albedoBuffer", self.albedoBuffer)
 	self.lightingShader:send("roughnessMetalnessDielectricF0Buffer", self.roughnessMetalnessDielectricF0Buffer)
 	-- self.lightingShader:send("depthBuffer", self.depthBuffer)
-	sendVec3(self.lightingShader, "viewPosition", camera.position.ival)
+	sendVec3(self.lightingShader, "viewPosition", cameraPosition)
 	for _, e in ipairs(self.lights) do
 		sendVec3(self.lightingShader, "lightColour", e.emission.ival)
 		sendVec3(self.lightingShader, "lightPosition", e.position.ival)
@@ -125,7 +131,7 @@ function rendering:draw(lerp, deltaDrawTime)
 	self.postProcessingShader:send("sky", self.levelSkyTexture or dummyCube)
 	self.postProcessingShader:send("fovScale", math.tan(vfov/2))
 	self.postProcessingShader:send("aspect", aspect)
-	sendVec4(self.postProcessingShader, "viewQuaternion", camera.orientation.ival)
+	sendVec4(self.postProcessingShader, "viewQuaternion", cameraOrientation)
 	love.graphics.setCanvas(self.output)
 	-- love.graphics.clear()
 	love.graphics.setBlendMode("replace")

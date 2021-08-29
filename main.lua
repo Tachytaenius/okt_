@@ -59,26 +59,24 @@ function love.load(arg)
 		:addSystem(systems.shooting)
 		:addSystem(systems.movement)
 		:addSystem(systems.physics)
-		:addSystem(systems.terrain)
 		:addSystem(systems.rendering)
 		:addSystem(systems.HUD)
 	
 	loadScene("testworld", world:getSystem(systems.rendering), world:getSystem(systems.physics))
 	
-	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera"):give("emission", 100, 100, 100):give("gravitationalAcceleration")
-	-- local otherGuy = entity():assemble(assemblages.testman, 2, 2, -10)
+	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera", true, vec3(0, 0, 5), quat.fromAxisAngle(vec3(0,1,0)*0), true):give("emission", 100, 100, 100):give("gravitationalAcceleration")
+	local otherGuy = entity():assemble(assemblages.testman, 2, 2, -10)
+	
 	-- local gravity = entity():give("gravity", 0, 0, -10)
 	-- local air = entity():give("air", 0.5)
 	-- local platform = entity():give("orientation"):give("drawable", "floar"):give("position", 0, 0, -3)
 	
 	world
 		:addEntity(player)
-		-- :addEntity(otherGuy)
+		:addEntity(otherGuy)
 		-- :addEntity(gravity)
 		-- :addEntity(air)
 		-- :addEntity(platform)
-	
-	player.orientation.val = quat.detFromAxisAngle(vec3(1,0,0)*detmath.tau/4)
 	
 	paused = false
 end
