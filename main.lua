@@ -4,10 +4,10 @@ love.graphics.setDefaultFilter("nearest", "nearest") -- TEMP, lower
 
 consts  = require("consts")
 
-vec2    = require("types.vec2")
-vec3    = require("types.vec3")
-quat    = require("types.quat")
-mat4    = require("types.mat4")
+vec2    = require("lib.types.vec2")
+vec3    = require("lib.types.vec3")
+quat    = require("lib.types.quat")
+mat4    = require("lib.types.mat4")
 
 detmath = require("lib.detmath")
 list    = require("lib.list")
@@ -64,7 +64,7 @@ function love.load(arg)
 	
 	loadScene("testworld", world:getSystem(systems.rendering), world:getSystem(systems.physics))
 	
-	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera", true, vec3(0, 0, 5), quat.fromAxisAngle(vec3(0,1,0)*0), true):give("emission", 100, 100, 100):give("gravitationalAcceleration")
+	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera"):give("emission", 100, 100, 100):give("gravitationalAcceleration")
 	local otherGuy = entity():assemble(assemblages.testman, 2, 2, -10)
 	
 	-- local gravity = entity():give("gravity", 0, 0, -10)
