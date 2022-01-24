@@ -12,6 +12,7 @@ mat4    = require("lib.types.mat4")
 detmath = require("lib.detmath")
 list    = require("lib.list")
 concord = require("lib.concord")
+json    = require("lib.json")
 
 entity     = concord.entity
 component  = concord.component
@@ -22,6 +23,8 @@ assemblage = concord.assemblage
 components  = concord.components
 systems     = {}
 assemblages = {}
+
+require("monkeypatch")
 
 concord.utils.loadNamespace("components")
 concord.utils.loadNamespace("systems", systems)
@@ -44,7 +47,6 @@ function love.load(arg)
 	love.graphics.setMeshCullMode("back")
 	
 	world = concord.world()
-	world.entitiesToAdd = {}
 	
 	world.chunkWidth, world.chunkHeight, world.chunkDepth = 6, 6, 6
 	world.simplexer = noice.newNoiser("OpenSimplex")
@@ -52,30 +54,26 @@ function love.load(arg)
 	world
 		:addSystem(systems.quantities)
 		:addSystem(systems.drag)
-		:addSystem(systems.gravity)
 		:addSystem(systems.ais)
 		:addSystem(systems.input)
 		:addSystem(systems.thrust)
-		:addSystem(systems.shooting)
 		:addSystem(systems.movement)
+		:addSystem(systems.shooting)
 		:addSystem(systems.physics)
 		:addSystem(systems.rendering)
 		:addSystem(systems.HUD)
+		-- :addSystem(systems.monitorConservationOfMomentum)
 	
-	loadScene("testworld", world:getSystem(systems.rendering), world:getSystem(systems.physics))
+	loadScene("testworld", world)
 	
 	local player = entity():assemble(assemblages.testman, 0, 0, 0):give("player"):give("camera"):give("emission", 100, 100, 100):give("gravitationalAcceleration")
-	local otherGuy = entity():assemble(assemblages.testman, 2, 2, -10)
+	local otherGuy = entity():assemble(assemblages.testman, -5, 0, -10)
 	
-	-- local gravity = entity():give("gravity", 0, 0, -10)
-	-- local air = entity():give("air", 0.5)
-	-- local platform = entity():give("orientation"):give("drawable", "floar"):give("position", 0, 0, -3)
+	-- local platform = entity():give("orientation"):give("model", "floar"):give("position", 0, 0, -3)
 	
 	world
 		:addEntity(player)
 		:addEntity(otherGuy)
-		-- :addEntity(gravity)
-		-- :addEntity(air)
 		-- :addEntity(platform)
 	
 	paused = false
@@ -100,10 +98,6 @@ end
 
 function love.detupdate(dt)
 	-- assert(dt == consts.tickLength)
-	for _, entity in ipairs(world.entitiesToAdd) do
-		world:addEntity(entity)
-	end
-	world.entitiesToAdd = {}
 	world:emit("update", dt)
 end
 

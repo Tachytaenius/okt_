@@ -24,7 +24,7 @@ end
 local settings = require("settings")
 local assets = require("assets")
 
-local rendering = system({cameras = {"camera", "position", "orientation"}, models = {"drawable", "position"}, lights = {"position", "emission"}})
+local rendering = system({cameras = {"camera", "position", "orientation"}, tracers = {"tracerColour", "position", "velocity"}, models = {"model", "position"}, lights = {"position", "emission"}})
 
 local dummyData = love.image.newImageData(1, 1)
 local dummy = love.graphics.newImage(dummyData)
@@ -49,6 +49,9 @@ function rendering:init()
 	self.bufferShader = love.graphics.newShader("shaders/gBufferAndAmbience.glsl")
 	self.lightingShader = love.graphics.newShader("shaders/lighting.glsl")
 	self.postProcessingShader = love.graphics.newShader("shaders/postProcess.glsl")
+	self.tracerShader = love.graphics.newShader("shaders/tracer.glsl")
+	
+	self.tracerMesh = love.graphics.newMesh({{0, 0, 0}, {0, 0, 0}, {1, 1, 1}}, "triangles")
 	
 	-- levelSkyTexture, levelMesh, levelAlbedoEmissionMap, levelNormalAmbientOcclusionMap, levelRoughnessMetalnessDielectricF0Map
 end
@@ -97,7 +100,7 @@ function rendering:draw(lerp, deltaDrawTime)
 			local modelMatrix = mat4.transform(e.position.ival, e.orientation and e.orientation.ival or quat())
 			sendMat4(self.bufferShader, "modelToWorld", modelMatrix)
 			sendMat4(self.bufferShader, "modelToScreen", projectionMatrix * cameraMatrix * modelMatrix)
-			local asset = assets.getAsset(e.drawable)
+			local asset = assets.getAsset(e.model)
 			self.bufferShader:send("albedoEmissionMap", asset.albedoEmissionMap)
 			self.bufferShader:send("normalAmbientOcclusionMap", asset.normalAmbientOcclusionMap)
 			self.bufferShader:send("roughnessMetalnessDielectricF0Map", asset.roughnessMetalnessDielectricF0Map)
@@ -106,6 +109,22 @@ function rendering:draw(lerp, deltaDrawTime)
 			love.graphics.draw(asset.mesh)
 		end
 	end
+	-- The tracer system just doesn't work. TODO FIXME BUG
+	-- Guess I'll just have to render little pointy full 3D models for bullets.
+	love.graphics.setShader(self.tracerShader)
+	love.graphics.setWireframe(true)
+	for _, e in ipairs(self.tracers) do
+		if not (hideCameraEntity and e == cameraEntity) then -- if hideCameraEntity and e == cameraEntity then continue end >:(
+			sendMat4(self.tracerShader, "worldToScreen", projectionMatrix * cameraMatrix)
+			sendVec3(self.tracerShader, "entityPos", e.position.ival)
+			sendVec3(self.tracerShader, "entityMovementThisFrame", (e.velocity.val - cameraEntity.velocity.val) * deltaDrawTime)
+			sendVec3(self.tracerShader, "colour", e.tracerColour.ival)
+			id = id + 1
+			self.tracerShader:send("id", id)
+			love.graphics.draw(self.tracerMesh)
+		end
+	end
+	love.graphics.setWireframe(false)
 	
 	love.graphics.setShader(self.lightingShader)
 	love.graphics.setCanvas(self.lighting)

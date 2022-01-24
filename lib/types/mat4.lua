@@ -1,4 +1,10 @@
--- NOTE: NOT PARTICULARLY COMPREHENSIVE. ONLY REALLY ADDED THINGS WHEN NEEDED.
+local detmath
+do
+	pcall(function() detmath = require("lib.detmath") end)
+end
+
+local path = (...):gsub('%.mat4$', '')
+local quat = require(path .. ".quat")
 
 local ffi = require("ffi")
 ffi.cdef([=[
@@ -9,20 +15,24 @@ ffi.cdef([=[
 
 local ffi_istype = ffi.istype
 
-local new_ = ffi.typeof("mat4")
+local rawnew = ffi.typeof("mat4")
 local function new(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)
 	a = a or 1
 	if not b then
-		return new_(a,0,0,0, 0,a,0,0, 0,0,a,0, 0,0,0,a)
+		return rawnew(a,0,0,0, 0,a,0,0, 0,0,a,0, 0,0,0,a)
 	else
-		return new_(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)
+		return rawnew(a,b,c,d, e,f,g,h, i,j,k,l, m,n,o,p)
 	end
 end
 
-local sin, cos, tan = math.sin, math.cos, math.tan
+local tan = math.tan
+local dettan
+if detmath then
+	dettan = detmath.tan
+end
 
 local function perspective(aspect, vfov, far, near)
-	return new(
+	return rawnew(
 		1/(aspect*tan(vfov/2)), 0, 0, 0,
 		0, 1/tan(vfov/2), 0, 0,
 		0, 0, (near+far)/(near-far), 2*(near+far)/(near-far),
@@ -30,8 +40,21 @@ local function perspective(aspect, vfov, far, near)
 	)
 end
 
+local detperspective
+if detmath then
+	-- The deterministic maths is really for cross-platform identical gamestate reproduction from inputs, but... might as well use it here (where it's used for output).
+	function detperspective(aspect, vfov, far, near)
+		return rawnew(
+			1/(aspect*dettan(vfov/2)), 0, 0, 0,
+			0, 1/dettan(vfov/2), 0, 0,
+			0, 0, (near+far)/(near-far), 2*(near+far)/(near-far),
+			0, 0, -1, 0
+		)
+	end
+end
+
 local function translate(v)
-	return new(
+	return rawnew(
 		1, 0, 0, v.x,
 		0, 1, 0, v.y,
 		0, 0, 1, v.z,
@@ -41,7 +64,7 @@ end
 
 local function rotate(q)
 	local x, y, z, w = q.x, q.y, q.z, q.w
-	return new(
+	return rawnew(
 		1-2*y*y-2*z*z,   2*x*y-2*z*w,   2*x*z+2*y*w, 0,
 		  2*x*y+2*z*w, 1-2*x*x-2*z*z,   2*y*z-2*x*w, 0,
 		  2*x*z-2*y*w,   2*y*z+2*x*w, 1-2*x*x-2*y*y, 0,
@@ -50,7 +73,7 @@ local function rotate(q)
 end
 
 local function scale(v)
-	return new(
+	return rawnew(
 		v.x, 0, 0, 0,
 		0, v.y, 0, 0,
 		0, 0, v.z, 0,
@@ -73,7 +96,7 @@ local function elements(m)
 end
 
 local function inverse(m)
-	return new(
+	return rawnew(
 		 m._11 * m._22 * m._33 - m._11 * m._23 * m._32 - m._21 * m._12 * m._33 + m._21 * m._13 * m._32 + m._31 * m._12 * m._23 - m._31 * m._13 * m._22,
 		-m._01 * m._22 * m._33 + m._01 * m._23 * m._32 + m._21 * m._02 * m._33 - m._21 * m._03 * m._32 - m._31 * m._02 * m._23 + m._31 * m._03 * m._22,
 		 m._01 * m._12 * m._33 - m._01 * m._13 * m._32 - m._11 * m._02 * m._33 + m._11 * m._03 * m._32 + m._31 * m._02 * m._13 - m._31 * m._03 * m._12,
@@ -94,7 +117,7 @@ local function inverse(m)
 end
 
 local function transpose(m)
-	return new(m._00,m._10,m._20,m._30, m._01,m._11,m._21,m._31, m._02,m._12,m._22,m._32, m._03,m._13,m._23,m._33)
+	return rawnew(m._00,m._10,m._20,m._30, m._01,m._11,m._21,m._31, m._02,m._12,m._22,m._32, m._03,m._13,m._23,m._33)
 end
 
 local mat4 = setmetatable({
@@ -120,7 +143,7 @@ ffi.metatype("mat4", {
 			a, b = b, a
 		end
 		if type(a) == "number" then
-			return new(a*b._00,a*b._01,a*b._02,a*b._03, a*b._10,a*b._11,a*b._12,a*b._13, a*b._20,a*b._21,a*b._22,a*b._23, a*b._30,a*b._31,a*b._32,a*b._33)
+			return rawnew(a*b._00,a*b._01,a*b._02,a*b._03, a*b._10,a*b._11,a*b._12,a*b._13, a*b._20,a*b._21,a*b._22,a*b._23, a*b._30,a*b._31,a*b._32,a*b._33)
 		end
 		if ffi_istype("vec3", b) then
 			return vec3(
@@ -129,7 +152,7 @@ ffi.metatype("mat4", {
 				(a._20 * b.x + a._21 * b.y + a._22 * b.z + a._23 * 1) / (a._30 * b.x + a._31 * b.y + a._32 * b.z + a._33 * 1)
 			)
 		end
-		return new(
+		return rawnew(
 			a._00 * b._00 + a._01 * b._10 + a._02 * b._20 + a._03 * b._30,
 			a._00 * b._01 + a._01 * b._11 + a._02 * b._21 + a._03 * b._31,
 			a._00 * b._02 + a._01 * b._12 + a._02 * b._22 + a._03 * b._32,

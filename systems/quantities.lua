@@ -1,8 +1,6 @@
-local slerpPools = 2
 local quantities = system({
 	orientation = {"orientation"}, -- Uses slerp
-	position = {"position"}, emission = {"emission"}, ambience = {"ambience"}, gravity = {"gravity"} -- Uses lerp
-	-- velocity = {"velocity"}, angularVelocity = {"angularVelocity"}, restitution = {"restitution"} -- unused lerp
+	position = {"position"}, emission = {"emission"}, tracerColour = {"tracerColour"}, -- Uses lerp
 })
 
 function quantities:update(dt)
@@ -36,11 +34,7 @@ function quantities:draw(lerp)
 	slerpPool(self.orientation)
 	lerpPool(self.position)
 	lerpPool(self.emission)
-	lerpPool(self.ambience)
-	lerpPool(self.gravity)
-	-- lerpPool(self.velocity)
-	-- lerpPool(self.angularVelocity)
-	-- lerpPool(self.restitution)
+	lerpPool(self.tracerColour)
 end
 
 return quantities

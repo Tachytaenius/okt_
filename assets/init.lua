@@ -11,10 +11,11 @@ local function newAsset(path)
 end
 
 local assets = {}
-function assets.getAsset(drawable)
-	return assets[drawable.asset]
+function assets.getAsset(model)
+	return assets[model.asset]
 end
 assets.boi = newAsset("entity/boi")
 assets.ball = newAsset("entity/ball")
 assets.floar = newAsset("entity/floar")
+assets.bullet = newAsset("entity/bullet")
 return assets

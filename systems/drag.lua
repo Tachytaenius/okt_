@@ -6,7 +6,7 @@ local function dampen(entity, velocity, airDensity, dt)
         local referenceArea, dragCoefficient
         
         -- TODO
-        referenceArea = 2 * detmath.tau * entity.presence.radius ^ 2 / 2
+        referenceArea = 2 * math.tau * entity.presence.radius ^ 2 / 2
         dragCoefficient = 0.45
         
         local dragForce = 0.5 * speed ^ 2 * referenceArea * dragCoefficient * airDensity

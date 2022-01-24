@@ -1,6 +1,10 @@
--- NOTE: NOT PARTICULARLY COMPREHENSIVE. ONLY REALLY ADDED THINGS WHEN NEEDED.
+local detmath
+do
+	pcall(function() detmath = require("lib.detmath") end)
+end
 
-local detmath = require("lib.detmath")
+local path = (...):gsub('%.quat$', '')
+local vec3 = require(path .. ".vec3")
 
 local ffi = require("ffi")
 ffi.cdef([=[
@@ -11,33 +15,37 @@ ffi.cdef([=[
 
 local ffi_istype = ffi.istype
 
-local new_ = ffi.typeof("quat")
+local rawnew = ffi.typeof("quat")
 local function new(x, y, z, w)
-	if x then
+	if x and y and z then
 		if w then
-			return new_(x, y, z, w)
+			return rawnew(x, y, z, w)
 		else
-			return new(x, y, z, 0)
+			return rawnew(x, y, z, 0)
 		end
 	else
-		return new_(0, 0, 0, 1)
+		return rawnew(0, 0, 0, 1)
 	end
 end
 
-local sqrt, sin, cos, acos, detsin, detcos, detacos = math.sqrt, math.sin, math.cos, math.acos, detmath.sin, detmath.cos, detmath.acos
+local sqrt, sin, cos, acos = math.sqrt, math.sin, math.cos, math.acos
+local detsin, detcos, detacos 
+if detmath then
+	detsin, detcos, detacos = detmath.sin, detmath.cos, detmath.acos
+end
 
 local function length(q)
 	local x, y, z, w = q.x, q.y, q.z, q.w
 	return sqrt(x * x + y * y + z * z + w * w)
 end
 
-local function normalize(q)
+local function normalise(q)
 	local len = #q
-	return new(q.x / len, q.y / len, q.z / len, q.w / len)
+	return rawnew(q.x / len, q.y / len, q.z / len, q.w / len)
 end
 
 local function inverse(q)
-	return new(-q.x, -q.y, -q.z, q.w)
+	return rawnew(-q.x, -q.y, -q.z, q.w)
 end
 
 local function dot(a, b)
@@ -54,30 +62,44 @@ local function slerp(a, b, i)
 	return a * (sin((1 - i) * halfTheta) / sinHalfTheta) + b * (sin(i * halfTheta) / sinHalfTheta)
 end
 
-local function detSlerp(a, b, i)
-	if a == b then return a end
-	
-	local cosHalfTheta = dot(a, b)
-	local halfTheta = acos(cosHalfTheta)
-	local sinHalfTheta = sqrt(1 - cosHalfTheta*cosHalfTheta)
-	
-	return a * (detsin((1 - i) * halfTheta) / sinHalfTheta) + b * (detsin(i * halfTheta) / sinHalfTheta)
+local detSlerp
+if detmath then
+	function detSlerp(a, b, i)
+		if a == b then return a end
+		
+		local cosHalfTheta = dot(a, b)
+		local halfTheta = acos(cosHalfTheta)
+		local sinHalfTheta = sqrt(1 - cosHalfTheta*cosHalfTheta)
+		
+		return a * (detsin((1 - i) * halfTheta) / sinHalfTheta) + b * (detsin(i * halfTheta) / sinHalfTheta)
+	end
 end
 
 local function fromAxisAngle(v)
 	local angle = #v
-	if angle == 0 then return new() end
+	if angle == 0 then return rawnew(0, 0, 0, 1) end
 	local axis = v / angle
 	local s, c = sin(angle / 2), cos(angle / 2)
-	return normalize(new(axis.x * s, axis.y * s, axis.z * s, c))
+	return normalise(new(axis.x * s, axis.y * s, axis.z * s, c))
 end
 
-local function detFromAxisAngle(v)
-	local angle = #v
-	if angle == 0 then return new() end
-	local axis = v / angle
-	local s, c = detsin(angle / 2), detcos(angle / 2)
-	return normalize(new(axis.x * s, axis.y * s, axis.z * s, c))
+local detFromAxisAngle
+if detmath then
+	function detFromAxisAngle(v)
+		local angle = #v
+		if angle == 0 then return rawnew(0, 0, 0, 1) end
+		local axis = v / angle
+		local s, c = detsin(angle / 2), detcos(angle / 2)
+		return normalise(new(axis.x * s, axis.y * s, axis.z * s, c))
+	end
+end
+
+local function vec3ToVec3(u, v)
+	local a = vec3.cross(u, v)
+	return normalise(rawnew(
+		a.x, a.y, a.z,
+		sqrt(vec2.length2(u) * vec2.length2(v)) + vec3.dot(u, v)
+	))
 end
 
 local function components(q)
@@ -87,13 +109,15 @@ end
 local quat = setmetatable({
 	new = new,
 	length = length,
-	normalize = normalize,
+	normalise = normalise,
+	normalize = normalise,
 	inverse = inverse,
 	dot = dot,
 	slerp = slerp,
 	detSlerp = detSlerp,
 	fromAxisAngle = fromAxisAngle,
 	detFromAxisAngle = detFromAxisAngle,
+	vec3ToVec3 = vec3ToVec3,
 	components = components
 }, {
 	__call = function(_, x, y, z, w)
@@ -103,23 +127,23 @@ local quat = setmetatable({
 
 ffi.metatype("quat", {
 	__unm = function(a)
-		return new(-a.x, -a.y, -a.z, -a.w)
+		return rawnew(-a.x, -a.y, -a.z, -a.w)
 	end,
 	__mul = function(a, b)
 		local isQuat = type(b) == "cdata" and ffi_istype("quat", b)
 		if isQuat then
-			return new(
+			return rawnew(
 				a.x * b.w + a.w * b.x + a.y * b.z - a.z * b.y,
 				a.y * b.w + a.w * b.y + a.z * b.x - a.x * b.z,
 				a.z * b.w + a.w * b.z + a.x * b.y - a.y * b.x,
 				a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
 			)
 		else
-			return new(a.x * b, a.y * b, a.z * b, a.w * b)
+			return rawnew(a.x * b, a.y * b, a.z * b, a.w * b)
 		end
 	end,
 	__add = function(a, b)
-		return new(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w)
+		return rawnew(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w)
 	end,
 	__eq = function(a, b)
 		local isQuat = type(b) == "cdata" and ffi_istype("quat", b)

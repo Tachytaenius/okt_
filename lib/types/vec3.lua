@@ -1,6 +1,7 @@
--- NOTE: NOT PARTICULARLY COMPREHENSIVE. ONLY REALLY ADDED THINGS WHEN NEEDED.
-
-local detmath = require("lib.detmath")
+local detmath
+do
+	pcall(function() detmath = require("lib.detmath") end)
+end
 
 local ffi = require("ffi")
 ffi.cdef([=[
@@ -11,16 +12,19 @@ ffi.cdef([=[
 
 local ffi_istype = ffi.istype
 
-local new_ = ffi.typeof("vec3")
+local rawnew = ffi.typeof("vec3")
 local function new(x, y, z)
 	x = x or 0
 	y = y or x
 	z = z or y
-	return new_(x, y, z)
+	return rawnew(x, y, z)
 end
 
 local sqrt, sin, cos = math.sqrt, math.sin, math.cos
-local detsin, detcos = detmath.sin, detmath.cos
+local detsin, detcos 
+if detmath then
+	detsin, detcos = detmath.sin, detmath.cos
+end
 
 local function length(a)
 	local x, y, z = a.x, a.y, a.z
@@ -47,10 +51,10 @@ local function dot(a, b)
 end
 
 local function cross(a, b)
-	return new(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+	return rawnew(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
 end
 
-local function normalize(a)
+local function normalise(a)
 	return a/length(a)
 end
 
@@ -62,7 +66,7 @@ local function refract(incident, normal, eta)
 	local ndi = dot(normal, incident)
 	local k = 1 - eta * eta * (1 - ndi * ndi)
 	if k < 0 then
-		return new(0, 0)
+		return rawnew(0, 0)
 	else
 		return eta * incident - (eta * ndi + sqrt(k)) * normal
 	end
@@ -77,12 +81,15 @@ end
 
 local function fromAngles(theta, phi)
 	local st, sp, ct, cp = sin(theta), sin(phi), cos(theta), cos(phi)
-	return new(st*sp,ct,st*cp)
+	return rawnew(st*sp,ct,st*cp)
 end
 
-local function detFromAngles(theta, phi)
-	local st, sp, ct, cp = detsin(theta), detsin(phi), detcos(theta), detcos(phi)
-	return new(st*sp,ct,st*cp)
+local detFromAngles
+if detmath then
+	function detFromAngles(theta, phi)
+		local st, sp, ct, cp = detsin(theta), detsin(phi), detcos(theta), detcos(phi)
+		return rawnew(st*sp,ct,st*cp)
+	end
 end
 
 local function components(v)
@@ -97,7 +104,8 @@ local vec3 = setmetatable({
 	distance2 = distance2,
 	dot = dot,
 	cross = cross,
-	normalize = normalize,
+	normalise = normalise,
+	normalize = normalise,
 	reflect = reflect,
 	refract = refract,
 	rotate = rotate,
@@ -113,50 +121,50 @@ local vec3 = setmetatable({
 ffi.metatype("vec3", {
 	__add = function(a, b)
 		if type(a) == "number" then
-			return new(a + b.x, a + b.y, a + b.z)
+			return rawnew(a + b.x, a + b.y, a + b.z)
 		elseif type(b) == "number" then
-			return new(a.x + b, a.y + b, a.z + b)
+			return rawnew(a.x + b, a.y + b, a.z + b)
 		else
-			return new(a.x + b.x, a.y + b.y, a.z + b.z)
+			return rawnew(a.x + b.x, a.y + b.y, a.z + b.z)
 		end
 	end,
 	__sub = function(a, b)
 		if type(a) == "number" then
-			return new(a - b.x, a - b.y, a - b.z)
+			return rawnew(a - b.x, a - b.y, a - b.z)
 		elseif type(b) == "number" then
-			return new(a.x - b, a.y - b, a.z - b)
+			return rawnew(a.x - b, a.y - b, a.z - b)
 		else
-			return new(a.x - b.x, a.y - b.y, a.z - b.z)
+			return rawnew(a.x - b.x, a.y - b.y, a.z - b.z)
 		end
 	end,
 	__unm = function(a)
-		return new(-a.x, -a.y, -a.z)
+		return rawnew(-a.x, -a.y, -a.z)
 	end,
 	__mul = function(a, b)
 		if type(a) == "number" then
-			return new(a * b.x, a * b.y, a * b.z)
+			return rawnew(a * b.x, a * b.y, a * b.z)
 		elseif type(b) == "number" then
-			return new(a.x * b, a.y * b, a.z * b)
+			return rawnew(a.x * b, a.y * b, a.z * b)
 		else
-			return new(a.x * b.x, a.y * b.y, a.z * b.z)
+			return rawnew(a.x * b.x, a.y * b.y, a.z * b.z)
 		end
 	end,
 	__div = function(a, b)
 		if type(a) == "number" then
-			return new(a / b.x, a / b.y, a / b.z)
+			return rawnew(a / b.x, a / b.y, a / b.z)
 		elseif type(b) == "number" then
-			return new(a.x / b, a.y / b, a.z / b)
+			return rawnew(a.x / b, a.y / b, a.z / b)
 		else
-			return new(a.x / b.x, a.y / b.y, a.z / b.z)
+			return rawnew(a.x / b.x, a.y / b.y, a.z / b.z)
 		end
 	end,
 	__mod = function(a, b)
 		if type(a) == "number" then
-			return new(a % b.x, a % b.y, a % b.z)
+			return rawnew(a % b.x, a % b.y, a % b.z)
 		elseif type(b) == "number" then
-			return new(a.x % b, a.y % b, a.z % b)
+			return rawnew(a.x % b, a.y % b, a.z % b)
 		else
-			return new(a.x % b.x, a.y % b.y, a.z % b.z)
+			return rawnew(a.x % b.x, a.y % b.y, a.z % b.z)
 		end
 	end,
 	__eq = function(a, b)

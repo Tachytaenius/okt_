@@ -1,6 +1,6 @@
 local settings = require("settings")
 
-local HUD = system({cameras = {"camera", "position", "orientation"}, gravities = {"gravity"}})
+local HUD = system({cameras = {"camera", "position", "orientation"}})
 
 function HUD:init()
 	self.width, self.height = settings.graphics.width, settings.graphics.height
@@ -15,10 +15,7 @@ function HUD:draw(lerp)
 	love.graphics.setCanvas(self.output)
 	love.graphics.clear(0, 0, 0, 0)
 	
-	local gravitation = vec3()
-	for _, e in ipairs(self.gravities) do
-		gravitation = gravitation + e.gravity.ival
-	end
+	local gravitation = self:getWorld().movement.gravity or vec3()
 	
 	local relativeGravitation = vec3.rotate(gravitation, quat.inverse(camera.orientation.ival))
 	local direction = vec3.normalize(relativeGravitation)
