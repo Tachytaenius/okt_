@@ -10,7 +10,7 @@ function shooting:update(dt)
 				local direction = vec3.rotate(vec3.detFromAngles(theta - math.tau / 4, phi), e.orientation.val) -- TODO: Revise understanding of how quats, vecs and such relate in the various spaces they exist in in this engine. (AKA "why do we have to subtract quarter tau")
 				
 				if type(e.will.shoot) ~= "boolean" then
-					direction = 
+					-- direction = 
 				end
 				
 				local velocity = direction * e.guns.speed
